@@ -1,0 +1,60 @@
+load("@npm//nuxt:index.bzl", "nuxt")
+load("@io_bazel_rules_docker//container:container.bzl", "container_image")
+
+filegroup(
+    name = "nuxt-srcs",
+    srcs =
+        ["nuxt.config.js"] +
+        glob(
+            [
+                "assets/**",
+                "components/**/*.vue",
+                "layouts/*.vue",
+                "middleware/*.js",
+                "pages/**/*.vue",
+                "plugins/*.js",
+                "static/*",
+                "store/*.js",
+            ],
+            # specifically exclude test files
+            exclude = [
+            ],
+        ),
+)
+
+filegroup(
+    name = "package_json",
+    srcs = ["package.json"],
+)
+
+# Build nuxt.js for production
+nuxt(
+    name = ".nuxt",
+    args = [
+        "generate",
+        "--buildDir=$(@D)",
+    ],
+    data = [
+        ":nuxt-srcs",
+        ":package_json",
+        "@npm//:node_modules",
+    ],
+    output_dir = True,
+)
+
+nuxt(
+    name = "start",
+    args = [
+        "start",
+        "--debug",
+    ],
+    data = [
+        ":.nuxt",
+        "@npm//:node_modules",
+    ],
+)
+
+container_image(
+    name = "container",
+    files = [":.nuxt"],
+)
